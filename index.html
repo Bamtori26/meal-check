@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>우유/간식 체크 프로그램</title>
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <section class="children-area">
+      <h1 class="title" id="mainTitle">🥛 우유 먹기 체크판 🌈</h1>
+
+      <div class="tabs">
+        <button class="tab-btn" id="mealTabBtn" type="button">🍱 급식 체크</button>
+        <button class="tab-btn active" id="milkTabBtn" type="button">🥛 우유 체크</button>
+        <button class="tab-btn" id="snackTabBtn" type="button">🍪 간식 체크</button>
+      </div>
+
+      <div class="top-tools">
+        <button class="tool-btn edit-mode-btn" id="editModeBtn" type="button">카드 수정 모드: OFF</button>
+        <button class="tool-btn save-btn" id="saveBtn" type="button">현재 카드 저장</button>
+        <button class="tool-btn clear-save-btn" id="clearSaveBtn" type="button">카드 저장 지우기</button>
+      </div>
+
+      <div class="card-list" id="cardList"></div>
+    </section>
+  </div>
+
+  <div class="bottom-panel">
+    <div class="check-box">
+      <div class="center-tools">
+        <button class="final-check-btn" id="finalCheckBtn" type="button">최종 체크</button>
+        <button class="reset-btn" id="resetBtn" type="button">오늘 체크 초기화</button>
+      </div>
+
+      <div class="result-text" id="resultText">아직 최종 체크를 하지 않았어요.</div>
+    </div>
+
+    <div class="history-box">
+      <h2 class="history-title" id="historyTitle">📒 날짜별 우유 기록</h2>
+
+      <div class="record-tools">
+        <input type="date" id="recordDate" class="record-date" />
+        <button class="save-record-btn" id="saveRecordBtn" type="button">이 날짜로 기록 저장</button>
+        <button class="export-excel-btn" id="exportExcelBtn" type="button">엑셀 파일로 저장</button>
+        <button class="delete-record-btn" id="clearRecordBtn" type="button">기록 전체 지우기</button>
+      </div>
+
+      <div class="history-table-wrap" id="historyTableWrap"></div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script>
+    if (window.location.protocol === "file:") {
+      document.write('<script src="./src/main.js"><\/script>');
+    }
+  </script>
+  <script type="module">
+    if (window.location.protocol !== "file:") {
+      import("./src/main.js");
+    }
+  </script>
+</body>
+</html>
