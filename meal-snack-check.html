@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>급식·우유·간식 체크 프로그램</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --theme-main: #ff955c;
+      --theme-soft: #ffe5ce;
+      --theme-light: #fff7ee;
+      --theme-border: #ffc06e;
+      --pink: #ff5aa5;
+      --purple: #7d78ff;
+      --mint: #00b7a8;
+      --green: #43c463;
+      --yellow: #ffbd2e;
+      --blue: #38a8ff;
+      --red: #ff6b6b;
+      --text: #45405a;
+      --shadow: 0 16px 35px rgba(62, 45, 87, 0.14);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Arial", "맑은 고딕", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.9), transparent 32%),
+        linear-gradient(135deg, #fff8bf, #ffd5ec 46%, #d8f4ff);
+      overflow-x: hidden;
+    }
+
+    body.theme-meal {
+      --theme-main: #ff955c;
+      --theme-soft: #ffe3c7;
+      --theme-light: #fff8ef;
+      --theme-border: #ffc06e;
+    }
+
+    body.theme-milk {
+      --theme-main: #56a9ff;
+      --theme-soft: #dff1ff;
+      --theme-light: #f2fbff;
+      --theme-border: #95d3ff;
+    }
+
+    body.theme-snack {
+      --theme-main: #ff69b4;
+      --theme-soft: #ffe0ef;
+      --theme-light: #fff4fa;
+      --theme-border: #ffaad5;
+    }
+
+    button,
+    input {
+      font-family: inherit;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      width: min(1600px, 100%);
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .main-panel {
+      position: relative;
+      padding: 22px;
+      border: 5px dashed rgba(255, 96, 160, 0.65);
+      border-radius: 34px;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      overflow: hidden;
+    }
+
+    .main-panel::before,
+    .main-panel::after {
+      content: "";
+      position: absolute;
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      background: var(--theme-soft);
+      filter: blur(4px);
+      opacity: 0.7;
+      z-index: 0;
+      animation: floatBubble 6s ease-in-out infinite alternate;
+    }
+
+    .main-panel::before {
+      top: -70px;
+      left: -50px;
+    }
+
+    .main-panel::after {
+      right: -70px;
+      bottom: -70px;
+      animation-delay: 1.5s;
+    }
+
+    @keyframes floatBubble {
+      from {
+        transform: translateY(0) scale(1);
+      }
+      to {
+        transform: translateY(16px) scale(1.08);
+      }
+    }
+
+    .content-layer {
+      position: relative;
+      z-index: 1;
+    }
+
+    .title {
+      margin: 0 0 6px;
+      text-align: center;
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 900;
+      color: var(--theme-main);
+      text-shadow: 3px 3px 0 #fff;
+      letter-spacing: -1px;
+    }
+
+    .subtitle {
+      margin: 0 0 18px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 800;
+      color: #716a86;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 20px;
+      font-size: 18px;
+      font-weight: 900;
+      color: #fff;
+      background: #b9b5d9;
+      cursor: pointer;
+      box-shadow: 0 8px 14px rgba(0,0,0,0.11);
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+
+    .tab-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .tab-btn.active {
+      background: var(--theme-main);
+      transform: translateY(-2px) scale(1.04);
+    }
+
+    .tools {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .tool-btn,
+    .action-btn {
+      border: 0;
+      border-radius: 16px;
+      padding: 11px 16px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+      transition: transform 0.18s ease, filter 0.18s ease;
+    }
+
+    .tool-btn:hover,
+    .action-btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.03);
+    }
+
+    .edit-btn {
+      background: var(--purple);
+    }
+
+    .edit-btn.active {
+      background: #5952ff;
+    }
+
+    .save-btn {
+      background: var(--mint);
+    }
+
+    .default-btn {
+      background: #ff89b7;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .child-card,
+    .add-card {
+      min-height: 318px;
+      border-radius: 26px;
+      box-shadow: 0 12px 24px rgba(66, 48, 94, 0.12);
+    }
+
+    .child-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: 13px;
+      background:
+        linear-gradient(#fff, #fff) padding-box,
+        linear-gradient(135deg, var(--theme-border), #a6ddff, #ffc7df) border-box;
+      border: 4px solid transparent;
+      overflow: hidden;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .child-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        120deg,
+        transparent 0%,
+        transparent 35%,
+        rgba(255,255,255,0.68) 50%,
+        transparent 65%,
+        transparent 100%
+      );
+      transform: translateX(-130%);
+      pointer-events: none;
+    }
+
+    .child-card.done::before {
+      animation: shine 1.2s ease;
+    }
+
+    @keyframes shine {
+      to {
+        transform: translateX(130%);
+      }
+    }
+
+    .child-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .child-card.level-1 {
+      background:
+        linear-gradient(#fff9d7, #fff4c2) padding-box,
+        linear-gradient(135deg, #ffd44d, #ffe89b) border-box;
+    }
+
+    .child-card.level-2 {
+      background:
+        linear-gradient(#eaf8ff, #d8f1ff) padding-box,
+        linear-gradient(135deg, #66c6ff, #b6e7ff) border-box;
+    }
+
+    .child-card.level-3 {
+      background:
+        linear-gradient(#e4ffe4, #d2ffd2) padding-box,
+        linear-gradient(135deg, #45d96a, #9cffb0) border-box;
+    }
+
+    .status {
+      min-height: 42px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 9px;
+    }
+
+    .status-badge {
+      width: 100%;
+      padding: 8px 6px;
+      border-radius: 15px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      text-align: center;
+      white-space: nowrap;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+
+    .status-badge.level-0 {
+      background: #ffaad1;
+    }
+
+    .status-badge.level-1 {
+      background: var(--yellow);
+    }
+
+    .status-badge.level-2 {
+      background: var(--blue);
+    }
+
+    .status-badge.level-3 {
+      background: var(--green);
+    }
+
+    .delete-card {
+      position: absolute;
+      top: 7px;
+      right: 7px;
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--red);
+      font-size: 20px;
+      font-weight: 900;
+      cursor: pointer;
+      display: none;
+      z-index: 2;
+    }
+
+    .editing .delete-card {
+      display: block;
+    }
+
+    .photo {
+      width: 78px;
+      height: 78px;
+      margin: 0 auto 8px;
+      border: 4px solid #ffe17f;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #fff7ec;
+      box-shadow: 0 7px 14px rgba(0,0,0,0.1);
+    }
+
+    .name {
+      width: 100%;
+      border: 3px solid #d8ccff;
+      border-radius: 14px;
+      padding: 8px 10px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 900;
+      color: #5d50d6;
+      background: #f8f7ff;
+      outline: none;
+    }
+
+    .name:disabled {
+      opacity: 1;
+      cursor: default;
+    }
+
+    .upload-area {
+      min-height: 42px;
+      margin-top: 7px;
+      text-align: center;
+    }
+
+    .upload-label {
+      display: none;
+      padding: 7px 10px;
+      border-radius: 12px;
+      color: #fff;
+      background: var(--theme-main);
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .editing .upload-label {
+      display: inline-block;
+    }
+
+    .photo-input {
+      display: none;
+    }
+
+    .upload-help {
+      display: none;
+      margin-top: 4px;
+      color: #777;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .editing .upload-help {
+      display: block;
+    }
+
+    .character-zone {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 126px;
+      user-select: none;
+    }
+
+    .character-btn {
+      width: 82px;
+      height: 92px;
+      border: 0;
+      padding: 0;
+      margin-top: 2px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .character-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      filter: drop-shadow(0 6px 9px rgba(0,0,0,0.14));
+    }
+
+    .click-help {
+      margin-top: 5px;
+      color: #736d82;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    .add-card {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      border: 4px dashed #a9cdff;
+      background: rgba(255,255,255,0.72);
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+
+    .add-card.show {
+      display: flex;
+    }
+
+    .add-card:hover {
+      transform: translateY(-4px);
+      background: #fff;
+    }
+
+    .plus {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 10px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--theme-main);
+      font-size: 40px;
+      font-weight: 900;
+      box-shadow: 0 8px 15px rgba(0,0,0,0.14);
+    }
+
+    .add-title {
+      font-size: 17px;
+      font-weight: 900;
+      color: var(--theme-main);
+    }
+
+    .add-guide {
+      margin-top: 6px;
+      color: #777;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .bottom {
+      width: min(1600px, 100%);
+      margin: 18px auto 0;
+      padding-bottom: 22px;
+    }
+
+    .box {
+      margin-bottom: 18px;
+      padding: 18px;
+      border: 5px dashed var(--theme-border);
+      border-radius: 30px;
+      background: rgba(255,255,255,0.76);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .check-btn {
+      background: var(--purple);
+    }
+
+    .record-btn {
+      background: var(--mint);
+    }
+
+    .excel-btn {
+      background: #4c96ff;
+    }
+
+    .delete-btn {
+      background: var(--red);
+    }
+
+    .reset-btn {
+      background: #ff83be;
+    }
+
+    .date-input {
+      border: 3px solid #d8ccff;
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-size: 17px;
+      font-weight: 900;
+      color: #4e4770;
+      outline: none;
+      background: #fff;
+    }
+
+    .result {
+      min-height: 132px;
+      padding: 16px;
+      border-radius: 22px;
+      background: #fffdf4;
+      color: #5840d8;
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1.75;
+      word-break: keep-all;
+    }
+
+    .history-title {
+      margin: 0 0 14px;
+      color: var(--theme-main);
+      text-align: center;
+      font-size: 27px;
+      font-weight: 900;
+      text-shadow: 2px 2px 0 #fff;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    .history-table {
+      width: 100%;
+      min-width: 940px;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 18px;
+      background: #fff;
+    }
+
+    .history-table th,
+    .history-table td {
+      padding: 11px 9px;
+      border: 2px solid #f0e8ff;
+      text-align: center;
+      font-size: 14px;
+      vertical-align: top;
+    }
+
+    .history-table th {
+      background: var(--theme-soft);
+      color: #50456b;
+      font-weight: 900;
+    }
+
+    .history-table td {
+      font-weight: 700;
+    }
+
+    .empty-history {
+      padding: 24px;
+      border-radius: 20px;
+      text-align: center;
+      color: #777;
+      background: #fff;
+      font-weight: 900;
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        padding: 10px;
+      }
+
+      .main-panel {
+        padding: 14px;
+        border-radius: 24px;
+      }
+
+      .card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+      }
+
+      .child-card,
+      .add-card {
+        min-height: 300px;
+      }
+
+      .tab-btn,
+      .tool-btn,
+      .action-btn {
+        font-size: 14px;
+        padding: 10px 12px;
+      }
+
+      .result {
+        font-size: 16px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="theme-meal">
+  <main class="app">
+    <section class="main-panel">
+      <div class="content-layer">
+        <h1 id="mainTitle" class="title">🍱 급식 체크</h1>
+        <p id="subtitle" class="subtitle">캐릭터를 눌러 먹은 정도를 체크해요.</p>
+
+        <nav class="tabs" aria-label="체크 탭">
+          <button class="tab-btn active" id="mealTab" type="button" aria-selected="true">🍱 급식</button>
+          <button class="tab-btn" id="milkTab" type="button" aria-selected="false">🥛 우유</button>
+          <button class="tab-btn" id="snackTab" type="button" aria-selected="false">🍪 간식</button>
+        </nav>
+
+        <div class="tools">
+          <button class="tool-btn edit-btn" id="editBtn" type="button">✏️ 카드 수정</button>
+          <button class="tool-btn save-btn" id="saveBtn" type="button">💾 카드 저장</button>
+          <button class="tool-btn default-btn" id="defaultBtn" type="button">🌈 기본 카드로</button>
+        </div>
+
+        <section class="card-grid" id="cardGrid" aria-label="유아 카드 목록"></section>
+      </div>
+    </section>
+
+    <section class="bottom">
+      <div class="box">
+        <div class="actions">
+          <button class="action-btn check-btn" id="checkBtn" type="button">✅ 최종 확인</button>
+          <button class="action-btn reset-btn" id="resetBtn" type="button">🔄 오늘 급식 체크 초기화</button>
+        </div>
+        <div class="result" id="result">
+          급식 탭이 준비되었어요. 캐릭터를 누르면 체크 상태가 바뀝니다.
+        </div>
+      </div>
+
+      <div class="box">
+        <h2 class="history-title" id="historyTitle">📚 급식 날짜별 기록</h2>
+        <div class="actions">
+          <input class="date-input" id="recordDate" type="date" />
+          <button class="action-btn record-btn" id="saveRecordBtn" type="button">📝 날짜 기록 저장</button>
+          <button class="action-btn excel-btn" id="excelBtn" type="button">📊 엑셀 다운로드</button>
+          <button class="action-btn delete-btn" id="clearHistoryBtn" type="button">🗑 기록 전체 삭제</button>
+        </div>
+        <div class="table-wrap" id="historyWrap"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const TAB_ORDER = ["meal", "milk", "snack"];
+
+    const TAB_CONFIG = {
+      meal: {
+        label: "급식",
+        title: "🍱 급식 체크",
+        subtitle: "든든 곰돌이가 오늘 급식을 얼마나 먹었는지 알려줘요.",
+        bodyClass: "theme-meal",
+        emoji: "🍱",
+        characterName: "든든 곰돌",
+        resultLabel: "급식",
+        resetText: "🔄 오늘 급식 체크 초기화",
+        historyTitle: "📚 급식 날짜별 기록",
+        storagePrefix: "cute_meal_check",
+        exportPrefix: "급식_체크기록",
+        sheetName: "급식기록"
+      },
+      milk: {
+        label: "우유",
+        title: "🥛 우유 체크",
+        subtitle: "튼튼 우유 냥이가 우유 마신 정도를 귀엽게 표시해요.",
+        bodyClass: "theme-milk",
+        emoji: "🥛",
+        characterName: "우유 냥이",
+        resultLabel: "우유",
+        resetText: "🔄 오늘 우유 체크 초기화",
+        historyTitle: "📚 우유 날짜별 기록",
+        storagePrefix: "cute_milk_check",
+        exportPrefix: "우유_체크기록",
+        sheetName: "우유기록"
+      },
+      snack: {
+        label: "간식",
+        title: "🍪 간식 체크",
+        subtitle: "방긋 간식 토끼가 간식 먹은 정도를 알려줘요.",
+        bodyClass: "theme-snack",
+        emoji: "🍪",
+        characterName: "간식 토끼",
+        resultLabel: "간식",
+        resetText: "🔄 오늘 간식 체크 초기화",
+        historyTitle: "📚 간식 날짜별 기록",
+        storagePrefix: "cute_snack_check",
+        exportPrefix: "간식_체크기록",
+        sheetName: "간식기록"
+      }
+    };
+
+    const STATUS = [
+      {
+        key: "none",
+        label: "아직이에요",
+        resultTitle: "아직 먹지 않은 유아",
+        badgeText: "💤 아직이에요"
+      },
+      {
+        key: "effort",
+        label: "노력했어요",
+        resultTitle: "노력했어요",
+        badgeText: "👏 노력했어요"
+      },
+      {
+        key: "almost",
+        label: "거의 다 먹었어요",
+        resultTitle: "거의 다 먹었어요",
+        badgeText: "🌟 거의 다 먹었어요"
+      },
+      {
+        key: "full",
+        label: "다 먹었어요",
+        resultTitle: "다 먹은 유아",
+        badgeText: "✅ 다 먹었어요"
+      }
+    ];
+
+    const DEFAULT_CARDS = {
+      meal: [
+        { name: "하늘", level: 0, photo: "" },
+        { name: "바다", level: 0, photo: "" },
+        { name: "별이", level: 0, photo: "" }
+      ],
+      milk: [
+        { name: "하늘", level: 0, photo: "" },
+        { name: "바다", level: 0, photo: "" },
+        { name: "별이", level: 0, photo: "" }
+      ],
+      snack: [
+        { name: "하늘", level: 0, photo: "" },
+        { name: "바다", level: 0, photo: "" },
+        { name: "별이", level: 0, photo: "" }
+      ]
+    };
+
+    const state = {
+      currentTab: "meal",
+      editMode: {
+        meal: false,
+        milk: false,
+        snack: false
+      }
+    };
+
+    const DOM = {
+      body: document.body,
+      mainTitle: document.getElementById("mainTitle"),
+      subtitle: document.getElementById("subtitle"),
+      mealTab: document.getElementById("mealTab"),
+      milkTab: document.getElementById("milkTab"),
+      snackTab: document.getElementById("snackTab"),
+      editBtn: document.getElementById("editBtn"),
+      saveBtn: document.getElementById("saveBtn"),
+      defaultBtn: document.getElementById("defaultBtn"),
+      cardGrid: document.getElementById("cardGrid"),
+      checkBtn: document.getElementById("checkBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      result: document.getElementById("result"),
+      recordDate: document.getElementById("recordDate"),
+      saveRecordBtn: document.getElementById("saveRecordBtn"),
+      excelBtn: document.getElementById("excelBtn"),
+      clearHistoryBtn: document.getElementById("clearHistoryBtn"),
+      historyTitle: document.getElementById("historyTitle"),
+      historyWrap: document.getElementById("historyWrap")
+    };
+
+    function getConfig(tab = state.currentTab) {
+      return TAB_CONFIG[tab];
+    }
+
+    function storageKey(type, tab = state.currentTab) {
+      return `${getConfig(tab).storagePrefix}_${type}`;
+    }
+
+    function todayString() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const dd = String(now.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function safeParse(value, fallback) {
+      try {
+        return value ? JSON.parse(value) : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function saveCards() {
+      const cards = [...DOM.cardGrid.querySelectorAll(".child-card")].map((card) => ({
+        id: card.dataset.id,
+        name: card.querySelector(".name").value.trim() || "이름",
+        level: Number(card.dataset.level || 0),
+        photo: card.dataset.photo || ""
+      }));
+
+      localStorage.setItem(storageKey("cards"), JSON.stringify(cards));
+      localStorage.setItem(storageKey("editMode"), JSON.stringify(state.editMode[state.currentTab]));
+    }
+
+    function loadCards(tab = state.currentTab) {
+      const saved = safeParse(localStorage.getItem(storageKey("cards", tab)), null);
+
+      if (Array.isArray(saved) && saved.length > 0) {
+        return saved;
+      }
+
+      return DEFAULT_CARDS[tab].map((card, index) => ({
+        ...card,
+        id: `${tab}-${Date.now()}-${index}`
+      }));
+    }
+
+    function saveHistory(history) {
+      localStorage.setItem(storageKey("history"), JSON.stringify(history));
+    }
+
+    function loadHistory() {
+      return safeParse(localStorage.getItem(storageKey("history")), []);
+    }
+
+    function loadEditMode() {
+      TAB_ORDER.forEach((tab) => {
+        state.editMode[tab] = safeParse(localStorage.getItem(storageKey("editMode", tab)), false);
+      });
+    }
+
+    function createEl(tag, options = {}) {
+      const el = document.createElement(tag);
+
+      if (options.className) el.className = options.className;
+      if (options.text !== undefined) el.textContent = options.text;
+      if (options.html !== undefined) el.innerHTML = options.html;
+
+      if (options.attrs) {
+        Object.entries(options.attrs).forEach(([key, value]) => {
+          el.setAttribute(key, value);
+        });
+      }
+
+      return el;
+    }
+
+    function placeholderPhoto(name) {
+      const first = encodeURIComponent((name || "♥").slice(0, 1));
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+              <stop stop-color="#fff4b8"/>
+              <stop offset="1" stop-color="#ffd2ec"/>
+            </linearGradient>
+          </defs>
+          <rect width="120" height="120" rx="60" fill="url(#g)"/>
+          <circle cx="42" cy="48" r="8" fill="#5d4a6f"/>
+          <circle cx="78" cy="48" r="8" fill="#5d4a6f"/>
+          <path d="M43 74 Q60 90 77 74" fill="none" stroke="#5d4a6f" stroke-width="7" stroke-linecap="round"/>
+          <text x="60" y="35" text-anchor="middle" font-size="25" font-weight="900" fill="#ff6aa7">${first}</text>
+        </svg>`;
+
+      return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+    }
+
+    function characterSvg(tab, level) {
+      if (tab === "meal") return mealBearSvg(level);
+      if (tab === "milk") return milkCatSvg(level);
+      return snackRabbitSvg(level);
+    }
+
+    function mealBearSvg(level) {
+      const cheek = level === 3 ? "#ff7aa8" : "#ffb3cd";
+      const mouth = level === 3 ? "M36 58 Q46 70 56 58" : "M38 61 Q46 66 54 61";
+
+      return `
+        <svg class="character-svg" viewBox="0 0 92 104" role="img" aria-label="든든 곰돌 도시락">
+          <circle cx="27" cy="29" r="13" fill="#c88b4a"/>
+          <circle cx="65" cy="29" r="13" fill="#c88b4a"/>
+          <circle cx="46" cy="48" r="30" fill="#e8ad68"/>
+          <circle cx="35" cy="48" r="4" fill="#4a3526"/>
+          <circle cx="57" cy="48" r="4" fill="#4a3526"/>
+          <circle cx="30" cy="58" r="5" fill="${cheek}"/>
+          <circle cx="62" cy="58" r="5" fill="${cheek}"/>
+          <path d="${mouth}" fill="none" stroke="#4a3526" stroke-width="4" stroke-linecap="round"/>
+          <rect x="20" y="68" width="52" height="28" rx="10" fill="#ff955c"/>
+          <rect x="26" y="72" width="40" height="17" rx="6" fill="#fff3d8"/>
+          <circle cx="36" cy="81" r="4" fill="#69c56f"/>
+          <circle cx="47" cy="81" r="4" fill="#ff6b6b"/>
+          <circle cx="58" cy="81" r="4" fill="#ffd447"/>
+          <text x="46" y="101" text-anchor="middle" font-size="10" font-weight="900" fill="#8b5a31">든든!</text>
+        </svg>
+      `;
+    }
+
+    function milkCatSvg(level) {
+      const eye = level >= 2 ? "M31 46 Q36 40 41 46" : "M33 44 L40 44";
+      const eye2 = level >= 2 ? "M51 46 Q56 40 61 46" : "M52 44 L59 44";
+      const milk = level === 3 ? "#ffffff" : "#dff4ff";
+
+      return `
+        <svg class="character-svg" viewBox="0 0 92 104" role="img" aria-label="튼튼 우유 냥이">
+          <path d="M22 30 L30 12 L41 29 Z" fill="#8fcfff"/>
+          <path d="M70 30 L62 12 L51 29 Z" fill="#8fcfff"/>
+          <circle cx="46" cy="49" r="30" fill="#b9e5ff"/>
+          <path d="${eye}" fill="none" stroke="#40516d" stroke-width="4" stroke-linecap="round"/>
+          <path d="${eye2}" fill="none" stroke="#40516d" stroke-width="4" stroke-linecap="round"/>
+          <path d="M39 59 Q46 66 53 59" fill="none" stroke="#40516d" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="30" cy="57" r="5" fill="#ff9ac4"/>
+          <circle cx="62" cy="57" r="5" fill="#ff9ac4"/>
+          <rect x="28" y="68" width="36" height="30" rx="6" fill="${milk}" stroke="#5aaeff" stroke-width="4"/>
+          <path d="M28 76 H64" stroke="#5aaeff" stroke-width="4"/>
+          <text x="46" y="91" text-anchor="middle" font-size="14" font-weight="900" fill="#4c96ff">MILK</text>
+        </svg>
+      `;
+    }
+
+    function snackRabbitSvg(level) {
+      const mouth = level === 3 ? "M37 59 Q46 71 55 59" : "M39 62 Q46 67 53 62";
+
+      return `
+        <svg class="character-svg" viewBox="0 0 92 104" role="img" aria-label="방긋 간식 토끼">
+          <rect x="25" y="5" width="16" height="39" rx="8" fill="#ffd6e8"/>
+          <rect x="52" y="5" width="16" height="39" rx="8" fill="#ffd6e8"/>
+          <rect x="30" y="10" width="7" height="25" rx="4" fill="#ff9dcc"/>
+          <rect x="56" y="10" width="7" height="25" rx="4" fill="#ff9dcc"/>
+          <circle cx="46" cy="50" r="30" fill="#fff4fa"/>
+          <circle cx="35" cy="47" r="4" fill="#57324c"/>
+          <circle cx="57" cy="47" r="4" fill="#57324c"/>
+          <circle cx="30" cy="57" r="5" fill="#ffa4ce"/>
+          <circle cx="62" cy="57" r="5" fill="#ffa4ce"/>
+          <path d="${mouth}" fill="none" stroke="#57324c" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="47" cy="80" r="15" fill="#c98550"/>
+          <circle cx="42" cy="75" r="2" fill="#5c3a26"/>
+          <circle cx="51" cy="82" r="2" fill="#5c3a26"/>
+          <circle cx="54" cy="73" r="2" fill="#5c3a26"/>
+          <text x="46" y="102" text-anchor="middle" font-size="10" font-weight="900" fill="#ff69b4">냠냠!</text>
+        </svg>
+      `;
+    }
+
+    function updateCardVisual(card) {
+      const level = Number(card.dataset.level || 0);
+      const badge = card.querySelector(".status-badge");
+      const character = card.querySelector(".character-btn");
+
+      card.classList.remove("level-0", "level-1", "level-2", "level-3", "done");
+      card.classList.add(`level-${level}`);
+      if (level === 3) card.classList.add("done");
+
+      badge.className = `status-badge level-${level}`;
+      badge.textContent = STATUS[level].badgeText;
+      character.innerHTML = characterSvg(state.currentTab, level);
+      character.setAttribute("aria-label", `${getConfig().characterName} ${STATUS[level].label}`);
+    }
+
+    function createCard(data) {
+      const card = createEl("article", {
+        className: "child-card",
+        attrs: {
+          "data-id": data.id || `${state.currentTab}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          "data-level": Number(data.level || 0),
+          "data-photo": data.photo || ""
+        }
+      });
+
+      const deleteBtn = createEl("button", {
+        className: "delete-card",
+        text: "×",
+        attrs: { type: "button", "aria-label": "카드 삭제" }
+      });
+
+      const status = createEl("div", { className: "status" });
+      const badge = createEl("div", { className: "status-badge" });
+      status.appendChild(badge);
+
+      const photo = createEl("img", {
+        className: "photo",
+        attrs: {
+          alt: "유아 사진",
+          src: data.photo || placeholderPhoto(data.name)
+        }
+      });
+
+      const nameInput = createEl("input", {
+        className: "name",
+        attrs: {
+          type: "text",
+          value: data.name || "이름",
+          maxlength: "12",
+          disabled: "disabled"
+        }
+      });
+
+      const uploadArea = createEl("div", { className: "upload-area" });
+      const uploadLabel = createEl("label", { className: "upload-label", text: "📷 사진 변경" });
+      const photoInput = createEl("input", {
+        className: "photo-input",
+        attrs: {
+          type: "file",
+          accept: "image/*"
+        }
+      });
+      const uploadHelp = createEl("div", { className: "upload-help", text: "수정 모드에서 이름과 사진을 바꿀 수 있어요." });
+
+      uploadLabel.appendChild(photoInput);
+      uploadArea.appendChild(uploadLabel);
+      uploadArea.appendChild(uploadHelp);
+
+      const characterZone = createEl("div", { className: "character-zone" });
+      const characterBtn = createEl("button", {
+        className: "character-btn",
+        attrs: { type: "button" }
+      });
+      const clickHelp = createEl("div", {
+        className: "click-help",
+        text: "캐릭터를 누르면 상태가 바뀌어요"
+      });
+
+      characterZone.appendChild(characterBtn);
+      characterZone.appendChild(clickHelp);
+
+      card.appendChild(deleteBtn);
+      card.appendChild(status);
+      card.appendChild(photo);
+      card.appendChild(nameInput);
+      card.appendChild(uploadArea);
+      card.appendChild(characterZone);
+
+      characterBtn.addEventListener("click", () => {
+        if (state.editMode[state.currentTab]) return;
+
+        const current = Number(card.dataset.level || 0);
+        card.dataset.level = String((current + 1) % 4);
+
+        updateCardVisual(card);
+        saveCards();
+        animateCardClick(card);
+
+        if (Number(card.dataset.level) === 3) {
+          celebrateSmall(card);
+        }
+      });
+
+      deleteBtn.addEventListener("click", () => {
+        const ok = window.confirm("이 카드를 삭제할까요?");
+        if (!ok) return;
+
+        card.remove();
+        saveCards();
+        showMessage("카드를 삭제했어요.");
+      });
+
+      nameInput.addEventListener("input", () => {
+        if (!card.dataset.photo) {
+          photo.src = placeholderPhoto(nameInput.value);
+        }
+        saveCards();
+      });
+
+      photoInput.addEventListener("change", (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = () => {
+          card.dataset.photo = reader.result;
+          photo.src = reader.result;
+          saveCards();
+        };
+
+        reader.readAsDataURL(file);
+      });
+
+      updateCardVisual(card);
+      applyEditModeToCard(card);
+
+      return card;
+    }
+
+    function createAddCard() {
+      const add = createEl("button", {
+        className: "add-card",
+        attrs: { type: "button" }
+      });
+
+      add.innerHTML = `
+        <div>
+          <div class="plus">+</div>
+          <div class="add-title">유아 카드 추가</div>
+          <div class="add-guide">수정 모드에서 새 카드를 만들 수 있어요.</div>
+        </div>
+      `;
+
+      add.addEventListener("click", () => {
+        const card = createCard({
+          id: `${state.currentTab}-${Date.now()}`,
+          name: "새친구",
+          level: 0,
+          photo: ""
+        });
+
+        DOM.cardGrid.insertBefore(card, add);
+        saveCards();
+        animateCards([card]);
+      });
+
+      return add;
+    }
+
+    function renderCards(cards) {
+      DOM.cardGrid.innerHTML = "";
+
+      cards.forEach((cardData) => {
+        DOM.cardGrid.appendChild(createCard(cardData));
+      });
+
+      DOM.cardGrid.appendChild(createAddCard());
+      applyEditMode();
+      animateCards([...DOM.cardGrid.querySelectorAll(".child-card, .add-card")]);
+    }
+
+    function applyEditModeToCard(card) {
+      const editing = state.editMode[state.currentTab];
+      const nameInput = card.querySelector(".name");
+
+      card.classList.toggle("editing", editing);
+
+      if (editing) {
+        nameInput.removeAttribute("disabled");
+      } else {
+        nameInput.setAttribute("disabled", "disabled");
+      }
+    }
+
+    function applyEditMode() {
+      const editing = state.editMode[state.currentTab];
+
+      DOM.editBtn.classList.toggle("active", editing);
+      DOM.editBtn.textContent = editing ? "✅ 수정 완료" : "✏️ 카드 수정";
+
+      [...DOM.cardGrid.querySelectorAll(".child-card")].forEach(applyEditModeToCard);
+
+      const addCard = DOM.cardGrid.querySelector(".add-card");
+      if (addCard) addCard.classList.toggle("show", editing);
+    }
+
+    function setTheme() {
+      const config = getConfig();
+
+      TAB_ORDER.forEach((tab) => {
+        DOM.body.classList.remove(TAB_CONFIG[tab].bodyClass);
+      });
+
+      DOM.body.classList.add(config.bodyClass);
+      DOM.mainTitle.textContent = config.title;
+      DOM.subtitle.textContent = config.subtitle;
+      DOM.resetBtn.textContent = config.resetText;
+      DOM.historyTitle.textContent = config.historyTitle;
+
+      TAB_ORDER.forEach((tab) => {
+        const btn = DOM[`${tab}Tab`];
+        const active = state.currentTab === tab;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-selected", active ? "true" : "false");
+      });
+    }
+
+    function switchTab(tab) {
+      if (!TAB_ORDER.includes(tab) || tab === state.currentTab) return;
+
+      saveCards();
+      state.currentTab = tab;
+      setTheme();
+      renderCards(loadCards(tab));
+      renderHistory();
+      showMessage(`${getConfig().label} 탭으로 이동했어요.`);
+    }
+
+    function collectStatus() {
+      const cards = [...DOM.cardGrid.querySelectorAll(".child-card")];
+
+      const data = {
+        fullNames: [],
+        almostNames: [],
+        effortNames: [],
+        noneNames: [],
+        totalCount: cards.length
+      };
+
+      cards.forEach((card) => {
+        const name = card.querySelector(".name").value.trim() || "이름";
+        const level = Number(card.dataset.level || 0);
+
+        if (level === 3) data.fullNames.push(name);
+        else if (level === 2) data.almostNames.push(name);
+        else if (level === 1) data.effortNames.push(name);
+        else data.noneNames.push(name);
+      });
+
+      data.fullCount = data.fullNames.length;
+      data.almostCount = data.almostNames.length;
+      data.effortCount = data.effortNames.length;
+      data.noneCount = data.noneNames.length;
+
+      return data;
+    }
+
+    function namesText(names) {
+      return names.length ? names.join(", ") : "없음";
+    }
+
+    function showFinalCheck() {
+      const data = collectStatus();
+      const label = getConfig().resultLabel;
+
+      DOM.result.innerHTML = `
+        ✅ <strong>다 먹은 유아:</strong> ${data.fullCount}명<br>
+        👉 이름: ${namesText(data.fullNames)}<br><br>
+
+        🌟 <strong>거의 다 먹었어요:</strong> ${data.almostCount}명<br>
+        👉 이름: ${namesText(data.almostNames)}<br><br>
+
+        👏 <strong>노력했어요:</strong> ${data.effortCount}명<br>
+        👉 이름: ${namesText(data.effortNames)}<br><br>
+
+        💤 <strong>아직 ${label}을 먹지 않은 유아:</strong> ${data.noneCount}명<br>
+        👉 이름: ${namesText(data.noneNames)}<br><br>
+
+        📌 <strong>총 인원:</strong> ${data.totalCount}명
+      `;
+
+      animateResult();
+
+      if (data.totalCount > 0 && data.fullCount === data.totalCount) {
+        celebrateBig();
+      }
+    }
+
+    function saveDailyRecord() {
+      const date = DOM.recordDate.value;
+
+      if (!date) {
+        alert("날짜를 먼저 선택해주세요.");
+        return;
+      }
+
+      const data = collectStatus();
+      const history = loadHistory();
+
+      const record = {
+        date,
+        fullNames: data.fullNames,
+        almostNames: data.almostNames,
+        effortNames: data.effortNames,
+        noneNames: data.noneNames,
+        fullCount: data.fullCount,
+        almostCount: data.almostCount,
+        effortCount: data.effortCount,
+        noneCount: data.noneCount,
+        totalCount: data.totalCount
+      };
+
+      const index = history.findIndex((item) => item.date === date);
+
+      if (index >= 0) {
+        history[index] = record;
+      } else {
+        history.push(record);
+      }
+
+      saveHistory(history);
+      renderHistory();
+      showMessage(`${date} 날짜 기록을 저장했어요.`);
+    }
+
+    function renderHistory() {
+      const history = loadHistory();
+      DOM.historyWrap.innerHTML = "";
+
+      if (!history.length) {
+        DOM.historyWrap.appendChild(createEl("div", {
+          className: "empty-history",
+          text: "아직 저장된 날짜별 기록이 없어요."
+        }));
+        return;
+      }
+
+      const table = createEl("table", { className: "history-table" });
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+
+      [
+        "날짜",
+        "다 먹은 유아",
+        "거의 다 먹었어요",
+        "노력했어요",
+        "먹지 않은 유아",
+        "다 먹음 수",
+        "거의 다 수",
+        "노력 수",
+        "안 먹음 수",
+        "총계"
+      ].forEach((title) => {
+        headRow.appendChild(createEl("th", { text: title }));
+      });
+
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+
+      [...history]
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .forEach((record) => {
+          const row = document.createElement("tr");
+
+          [
+            record.date,
+            namesText(record.fullNames),
+            namesText(record.almostNames),
+            namesText(record.effortNames),
+            namesText(record.noneNames),
+            record.fullCount,
+            record.almostCount,
+            record.effortCount,
+            record.noneCount,
+            record.totalCount
+          ].forEach((value) => {
+            row.appendChild(createEl("td", { text: String(value) }));
+          });
+
+          tbody.appendChild(row);
+        });
+
+      table.appendChild(tbody);
+      DOM.historyWrap.appendChild(table);
+    }
+
+    function exportExcel() {
+      const history = loadHistory();
+
+      if (!history.length) {
+        alert("엑셀로 저장할 기록이 없어요.");
+        return;
+      }
+
+      const rows = [...history]
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map((record) => ({
+          날짜: record.date,
+          다먹은유아: namesText(record.fullNames),
+          거의다먹었어요: namesText(record.almostNames),
+          노력했어요: namesText(record.effortNames),
+          먹지않은유아: namesText(record.noneNames),
+          다먹음수: record.fullCount,
+          거의다수: record.almostCount,
+          노력수: record.effortCount,
+          안먹음수: record.noneCount,
+          총계: record.totalCount
+        }));
+
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, getConfig().sheetName);
+      XLSX.writeFile(workbook, `${getConfig().exportPrefix}_${todayString()}.xlsx`);
+    }
+
+    function resetToday() {
+      const ok = window.confirm("오늘 체크 상태를 모두 초기화할까요?");
+      if (!ok) return;
+
+      [...DOM.cardGrid.querySelectorAll(".child-card")].forEach((card) => {
+        card.dataset.level = "0";
+        updateCardVisual(card);
+      });
+
+      saveCards();
+      showMessage("오늘 체크 상태를 모두 초기화했어요.");
+    }
+
+    function resetToDefaultCards() {
+      const ok = window.confirm("현재 탭의 카드 구성을 기본 카드로 되돌릴까요?");
+      if (!ok) return;
+
+      localStorage.removeItem(storageKey("cards"));
+      renderCards(loadCards());
+      saveCards();
+      showMessage("기본 카드로 되돌렸어요.");
+    }
+
+    function clearHistory() {
+      const ok = window.confirm("현재 탭의 날짜별 기록을 모두 삭제할까요?");
+      if (!ok) return;
+
+      localStorage.removeItem(storageKey("history"));
+      renderHistory();
+      showMessage("날짜별 기록을 모두 삭제했어요.");
+    }
+
+    function showMessage(message) {
+      DOM.result.textContent = message;
+      animateResult();
+    }
+
+    function animateCards(cards) {
+      if (!window.gsap) return;
+
+      gsap.fromTo(
+        cards,
+        {
+          opacity: 0,
+          y: 18,
+          scale: 0.96
+        },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.38,
+          stagger: 0.045,
+          ease: "back.out(1.5)"
+        }
+      );
+    }
+
+    function animateCardClick(card) {
+      if (!window.gsap) return;
+
+      gsap.fromTo(
+        card.querySelector(".character-btn"),
+        {
+          scale: 0.86,
+          rotate: -5
+        },
+        {
+          scale: 1,
+          rotate: 0,
+          duration: 0.35,
+          ease: "elastic.out(1, 0.45)"
+        }
+      );
+    }
+
+    function animateResult() {
+      if (!window.gsap) return;
+
+      gsap.fromTo(
+        DOM.result,
+        {
+          opacity: 0.55,
+          y: 8
+        },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.28,
+          ease: "power2.out"
+        }
+      );
+    }
+
+    function celebrateSmall() {
+      if (!window.confetti) return;
+
+      confetti({
+        particleCount: 26,
+        spread: 50,
+        startVelocity: 26,
+        origin: {
+          x: 0.5,
+          y: 0.62
+        }
+      });
+    }
+
+    function celebrateBig() {
+      if (!window.confetti) return;
+
+      confetti({
+        particleCount: 120,
+        spread: 75,
+        startVelocity: 38,
+        origin: {
+          x: 0.5,
+          y: 0.45
+        }
+      });
+    }
+
+    function bindEvents() {
+      DOM.mealTab.addEventListener("click", () => switchTab("meal"));
+      DOM.milkTab.addEventListener("click", () => switchTab("milk"));
+      DOM.snackTab.addEventListener("click", () => switchTab("snack"));
+
+      DOM.editBtn.addEventListener("click", () => {
+        state.editMode[state.currentTab] = !state.editMode[state.currentTab];
+        applyEditMode();
+        saveCards();
+
+        showMessage(
+          state.editMode[state.currentTab]
+            ? "수정 모드가 켜졌어요. 이름, 사진, 카드 추가/삭제가 가능해요."
+            : "수정 모드가 꺼졌어요."
+        );
+      });
+
+      DOM.saveBtn.addEventListener("click", () => {
+        saveCards();
+        showMessage("현재 카드 정보를 저장했어요.");
+      });
+
+      DOM.defaultBtn.addEventListener("click", resetToDefaultCards);
+      DOM.checkBtn.addEventListener("click", showFinalCheck);
+      DOM.resetBtn.addEventListener("click", resetToday);
+      DOM.saveRecordBtn.addEventListener("click", saveDailyRecord);
+      DOM.excelBtn.addEventListener("click", exportExcel);
+      DOM.clearHistoryBtn.addEventListener("click", clearHistory);
+    }
+
+    function init() {
+      DOM.recordDate.value = todayString();
+
+      loadEditMode();
+      setTheme();
+      bindEvents();
+      renderCards(loadCards());
+      renderHistory();
+      animateResult();
+    }
+
+    init();
+  </script>
+</body>
+</html>
