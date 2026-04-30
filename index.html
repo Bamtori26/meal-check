@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>우유/간식 체크 프로그램</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-1: #fff8c6;
+      --bg-2: #ffd6ec;
+      --bg-3: #d7f4ff;
+
+      --pink: #ff4f94;
+      --pink-soft: #ffb6d9;
+      --purple: #7f8cff;
+      --purple-dark: #5c66ff;
+      --green: #43c463;
+      --mint: #00b7a8;
+      --red: #ff7f7f;
+      --yellow: #ffbe0b;
+      --blue: #3aa6ff;
+
+      --card-border: #8fd3ff;
+      --panel-bg: rgba(255, 255, 255, 0.82);
+      --panel-border: #ffb3d9;
+      --text: #444;
+      --shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Arial", "맑은 고딕", sans-serif;
+      background: linear-gradient(135deg, var(--bg-1), var(--bg-2), var(--bg-3));
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    .container {
+      padding: 18px;
+    }
+
+    .children-area {
+      background: rgba(255, 255, 255, 0.78);
+      border-radius: 30px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      border: 5px dashed #ff9ecf;
+    }
+
+    .title {
+      font-size: 32px;
+      font-weight: 900;
+      text-align: center;
+      margin: 0 0 18px;
+      color: var(--pink);
+      text-shadow: 2px 2px 0 #fff;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn,
+    .tool-btn,
+    .final-check-btn,
+    .save-record-btn,
+    .export-excel-btn,
+    .delete-record-btn,
+    .reset-btn {
+      border: none;
+      border-radius: 16px;
+      color: white;
+      cursor: pointer;
+      font-weight: 900;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    .tab-btn {
+      font-size: 18px;
+      padding: 10px 18px;
+      background: #b6b6d9;
+    }
+
+    .tab-btn.active {
+      background: var(--purple);
+      transform: scale(1.03);
+    }
+
+    .top-tools {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .tool-btn {
+      font-size: 16px;
+      padding: 10px 14px;
+    }
+
+    .edit-mode-btn {
+      background: var(--purple);
+    }
+
+    .edit-mode-btn.active {
+      background: var(--purple-dark);
+      transform: scale(1.03);
+    }
+
+    .save-btn {
+      background: var(--mint);
+    }
+
+    .clear-save-btn {
+      background: #ff8b8b;
+    }
+
+    .card-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .child-card,
+    .add-card-tile {
+      min-height: 295px;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+    }
+
+    .child-card {
+      position: relative;
+      background: #ffffff;
+      padding: 12px;
+      border: 4px solid var(--card-border);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      transition: 0.2s ease;
+    }
+
+    .child-card.done {
+      background: #d8ffd8;
+      border-color: #53c653;
+    }
+
+    .child-card.partial-one {
+      background: #fff7cc;
+      border-color: #ffcc4d;
+    }
+
+    .child-card.partial-two {
+      background: #e6f7ff;
+      border-color: #6fc7ff;
+    }
+
+    .status-area {
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    .status-badge {
+      width: 100%;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 6px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 900;
+      text-align: center;
+      letter-spacing: -0.3px;
+      color: white;
+      white-space: nowrap;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.10);
+    }
+
+    .status-badge.idle { background: var(--pink-soft); }
+    .status-badge.effort { background: var(--yellow); }
+    .status-badge.almost { background: var(--blue); }
+    .status-badge.done { background: var(--green); }
+
+    .delete-card-btn {
+      position: absolute;
+      top: 7px;
+      right: 7px;
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 50%;
+      background: var(--red);
+      color: white;
+      font-size: 20px;
+      font-weight: 900;
+      cursor: pointer;
+      display: none;
+      z-index: 2;
+    }
+
+    .child-card.editing .delete-card-btn {
+      display: block;
+    }
+
+    .left-info {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+
+    .child-photo {
+      width: 78px;
+      height: 78px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid #ffd36b;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      display: block;
+      margin: 0 auto 8px;
+      background: #fff8f0;
+      flex-shrink: 0;
+    }
+
+    .name-input {
+      width: 100%;
+      font-size: 18px;
+      font-weight: 900;
+      text-align: center;
+      padding: 7px 8px;
+      border-radius: 12px;
+      border: 3px solid #d7c8ff;
+      outline: none;
+      color: #6a4cff;
+      margin-bottom: 8px;
+      background: #f5f5f5;
+    }
+
+    .name-input:disabled {
+      color: #6a4cff;
+      opacity: 1;
+      cursor: default;
+    }
+
+    .upload-wrap {
+      margin-bottom: 6px;
+      text-align: center;
+      min-height: 42px;
+    }
+
+    .upload-label {
+      display: none;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 7px 10px;
+      border-radius: 12px;
+      background: var(--pink-soft);
+      color: white;
+      cursor: pointer;
+      margin-bottom: 4px;
+    }
+
+    .child-card.editing .upload-label {
+      display: inline-block;
+    }
+
+    .photo-input {
+      display: none;
+    }
+
+    .upload-guide {
+      font-size: 11px;
+      font-weight: 700;
+      color: #777;
+      display: none;
+    }
+
+    .child-card.editing .upload-guide {
+      display: block;
+    }
+
+    .item-control {
+      text-align: center;
+      margin-top: auto;
+      user-select: none;
+      min-height: 118px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .item-btn {
+      width: 72px;
+      height: 88px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .item-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.12));
+    }
+
+    .item-help {
+      display: none;
+      margin-top: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #666;
+      line-height: 1.35;
+      min-height: 28px;
+    }
+
+    .child-card.editing .item-help {
+      display: block;
+    }
+
+    .add-card-tile {
+      display: none;
+      border: 4px dashed #9bc6ff;
+      background: rgba(255,255,255,0.8);
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 12px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .add-card-tile.show {
+      display: flex;
+    }
+
+    .add-card-tile:hover {
+      transform: translateY(-2px);
+      border-color: var(--purple);
+      background: #f8fbff;
+    }
+
+    .add-card-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .add-card-plus {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: var(--purple);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      font-weight: 900;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.14);
+    }
+
+    .add-card-text {
+      font-size: 16px;
+      font-weight: 900;
+      color: var(--purple-dark);
+    }
+
+    .add-card-guide {
+      font-size: 12px;
+      font-weight: 700;
+      color: #666;
+      line-height: 1.4;
+    }
+
+    .bottom-panel {
+      padding: 0 18px 22px;
+    }
+
+    .check-box,
+    .history-box {
+      max-width: 1600px;
+      margin: 0 auto 18px;
+      background: var(--panel-bg);
+      border-radius: var(--radius-xl);
+      padding: 18px;
+      border: 5px dashed var(--panel-border);
+      box-shadow: var(--shadow);
+    }
+
+    .center-tools {
+      text-align: center;
+    }
+
+    .final-check-btn,
+    .save-record-btn,
+    .export-excel-btn,
+    .delete-record-btn,
+    .reset-btn {
+      font-size: 18px;
+      padding: 11px 16px;
+      margin: 4px;
+    }
+
+    .final-check-btn { background: var(--purple); }
+    .save-record-btn { background: var(--mint); }
+    .export-excel-btn { background: #4f93ff; }
+    .delete-record-btn { background: var(--red); }
+    .reset-btn { background: #ff8ac2; }
+
+    .result-text {
+      margin-top: 16px;
+      font-size: 19px;
+      font-weight: 900;
+      line-height: 1.75;
+      color: #5a3cff;
+      background: #fffdf4;
+      border-radius: 18px;
+      padding: 16px;
+      min-height: 130px;
+      text-align: left;
+      word-break: keep-all;
+    }
+
+    .record-tools {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+
+    .record-date {
+      font-size: 18px;
+      font-weight: 900;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 3px solid #d7c8ff;
+    }
+
+    .history-title {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--pink);
+      text-align: center;
+      margin: 0 0 14px;
+    }
+
+    .history-table-wrap {
+      overflow-x: auto;
+    }
+
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      overflow: hidden;
+    }
+
+    .history-table th,
+    .history-table td {
+      border: 2px solid #f0d7e8;
+      padding: 9px;
+      font-size: 15px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .history-table th {
+      background: #ffe4f1;
+      font-size: 17px;
+    }
+
+    .empty-history {
+      font-size: 20px;
+      font-weight: 800;
+      color: #666;
+      background: #fffdf4;
+      border-radius: 18px;
+      padding: 18px;
+      text-align: center;
+    }
+
+    @media (max-width: 768px) {
+      .title {
+        font-size: 27px;
+      }
+
+      .card-list {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      }
+
+      .child-card,
+      .add-card-tile {
+        min-height: 280px;
+      }
+
+      .result-text {
+        font-size: 17px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container,
+      .bottom-panel {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .card-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .child-card,
+      .add-card-tile {
+        min-height: 265px;
+      }
+
+      .child-photo {
+        width: 70px;
+        height: 70px;
+      }
+
+      .item-btn {
+        width: 66px;
+        height: 82px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="children-area">
+      <h1 class="title" id="mainTitle">🥛 우유 먹기 체크판 🌈</h1>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="milkTabBtn" type="button">🥛 우유 체크</button>
+        <button class="tab-btn" id="snackTabBtn" type="button">🥐 간식 체크</button>
+      </div>
+
+      <div class="top-tools">
+        <button class="tool-btn edit-mode-btn" id="editModeBtn" type="button">카드 수정 모드: OFF</button>
+        <button class="tool-btn save-btn" id="saveBtn" type="button">현재 카드 저장</button>
+        <button class="tool-btn clear-save-btn" id="clearSaveBtn" type="button">카드 저장 지우기</button>
+      </div>
+
+      <div class="card-list" id="cardList"></div>
+    </section>
+  </div>
+
+  <div class="bottom-panel">
+    <div class="check-box">
+      <div class="center-tools">
+        <button class="final-check-btn" id="finalCheckBtn" type="button">최종 체크</button>
+        <button class="reset-btn" id="resetBtn" type="button">오늘 체크 초기화</button>
+      </div>
+
+      <div class="result-text" id="resultText">아직 최종 체크를 하지 않았어요.</div>
+    </div>
+
+    <div class="history-box">
+      <h2 class="history-title" id="historyTitle">📒 날짜별 우유 기록</h2>
+
+      <div class="record-tools">
+        <input type="date" id="recordDate" class="record-date" />
+        <button class="save-record-btn" id="saveRecordBtn" type="button">이 날짜로 기록 저장</button>
+        <button class="export-excel-btn" id="exportExcelBtn" type="button">엑셀 파일로 저장</button>
+        <button class="delete-record-btn" id="clearRecordBtn" type="button">기록 전체 지우기</button>
+      </div>
+
+      <div class="history-table-wrap" id="historyTableWrap"></div>
+    </div>
+  </div>
+
+  <script>
+    const DOM = {
+      cardList: document.getElementById("cardList"),
+      resultText: document.getElementById("resultText"),
+      recordDate: document.getElementById("recordDate"),
+      historyTableWrap: document.getElementById("historyTableWrap"),
+
+      mainTitle: document.getElementById("mainTitle"),
+      historyTitle: document.getElementById("historyTitle"),
+
+      milkTabBtn: document.getElementById("milkTabBtn"),
+      snackTabBtn: document.getElementById("snackTabBtn"),
+
+      editModeBtn: document.getElementById("editModeBtn"),
+      saveBtn: document.getElementById("saveBtn"),
+      clearSaveBtn: document.getElementById("clearSaveBtn"),
+
+      finalCheckBtn: document.getElementById("finalCheckBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+
+      saveRecordBtn: document.getElementById("saveRecordBtn"),
+      exportExcelBtn: document.getElementById("exportExcelBtn"),
+      clearRecordBtn: document.getElementById("clearRecordBtn")
+    };
+
+    const DEFAULT_PHOTO_SIZE = 200;
+
+    const STORAGE = {
+      milk: {
+        cardKey: "milk_check_children_data_v9",
+        historyKey: "milk_check_daily_history_v9",
+        editModeKey: "milk_check_edit_mode_milk_v2",
+        sequenceKey: "milk_check_card_sequence_milk_v2"
+      },
+      snack: {
+        cardKey: "snack_check_children_data_v2",
+        historyKey: "snack_check_daily_history_v2",
+        editModeKey: "snack_check_edit_mode_snack_v2",
+        sequenceKey: "snack_check_card_sequence_snack_v2"
+      }
+    };
+
+    const TAB_CONFIG = {
+      milk: {
+        title: "🥛 우유 먹기 체크판 🌈",
+        historyTitle: "📒 날짜별 우유 기록",
+        idleText: "우유컵을 눌러 마셔보아요!",
+        resultLabel: "우유",
+        exportPrefix: "우유먹기기록",
+        addTileText: "우유 카드 추가"
+      },
+      snack: {
+        title: "🥐 간식 먹기 체크판 🌈",
+        historyTitle: "📒 날짜별 간식 기록",
+        idleText: "빵을 눌러 먹어보아요!",
+        resultLabel: "간식",
+        exportPrefix: "간식먹기기록",
+        addTileText: "간식 카드 추가"
+      }
+    };
+
+    const STATUS_CONFIG = {
+      0: { className: "idle", text: "" },
+      1: { className: "effort", text: "👏 노력했어요" },
+      2: { className: "almost", text: "🌟 거의 다 먹었어요" },
+      3: { className: "done", text: "✅ 다 먹었어요" }
+    };
+
+    const appState = {
+      currentTab: "milk",
+      editModeByTab: {
+        milk: false,
+        snack: false
+      },
+      cardSequenceByTab: {
+        milk: 1,
+        snack: 1
+      }
+    };
+
+    function getCurrentStorage() {
+      return STORAGE[appState.currentTab];
+    }
+
+    function getCurrentTabConfig() {
+      return TAB_CONFIG[appState.currentTab];
+    }
+
+    function getCurrentEditMode() {
+      return appState.editModeByTab[appState.currentTab];
+    }
+
+    function setCurrentEditMode(value) {
+      appState.editModeByTab[appState.currentTab] = value;
+      localStorage.setItem(getCurrentStorage().editModeKey, JSON.stringify(value));
+    }
+
+    function getTodayString() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function sanitizeNameInput(value) {
+      return String(value ?? "")
+        .replace(/[<>]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 10);
+    }
+
+    function getNormalizedLevel(value) {
+      const parsed = Number(value);
+      return [0, 1, 2, 3].includes(parsed) ? parsed : 0;
+    }
+
+    function createElement(tagName, options = {}) {
+      const element = document.createElement(tagName);
+
+      if (options.className) element.className = options.className;
+      if (options.text !== undefined) element.textContent = options.text;
+      if (options.html !== undefined) element.innerHTML = options.html;
+      if (options.type !== undefined) element.type = options.type;
+      if (options.value !== undefined) element.value = options.value;
+      if (options.maxlength !== undefined) element.maxLength = options.maxlength;
+      if (options.disabled !== undefined) element.disabled = options.disabled;
+      if (options.src !== undefined) element.src = options.src;
+      if (options.alt !== undefined) element.alt = options.alt;
+      if (options.accept !== undefined) element.accept = options.accept;
+      if (options.title !== undefined) element.title = options.title;
+
+      if (options.dataset) {
+        Object.entries(options.dataset).forEach(([key, value]) => {
+          element.dataset[key] = value;
+        });
+      }
+
+      return element;
+    }
+
+    function getDefaultCards(tab) {
+      return [
+        createDefaultCard(tab, "아이1", `${tab}_kid1`),
+        createDefaultCard(tab, "아이2", `${tab}_kid2`),
+        createDefaultCard(tab, "아이3", `${tab}_kid3`)
+      ];
+    }
+
+    function createDefaultCard(tab, name, seed) {
+      return {
+        id: `default_${seed}`,
+        name,
+        photo: `https://picsum.photos/seed/${seed}/${DEFAULT_PHOTO_SIZE}/${DEFAULT_PHOTO_SIZE}`,
+        level: 0
+      };
+    }
+
+    function loadEditModeForTab(tab) {
+      const saved = localStorage.getItem(STORAGE[tab].editModeKey);
+      if (saved === null) return false;
+
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return false;
+      }
+    }
+
+    function loadCardSequence(tab) {
+      const saved = localStorage.getItem(STORAGE[tab].sequenceKey);
+      const parsed = Number(saved);
+      appState.cardSequenceByTab[tab] = Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+    }
+
+    function getNextCardId(tab = appState.currentTab) {
+      const id = `${tab}_card_${appState.cardSequenceByTab[tab]}`;
+      appState.cardSequenceByTab[tab] += 1;
+      localStorage.setItem(STORAGE[tab].sequenceKey, String(appState.cardSequenceByTab[tab]));
+      return id;
+    }
+
+    function normalizeCardData(tab, rawCard, index) {
+      return {
+        id: rawCard?.id || `${tab}_migrated_${index}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        name: sanitizeNameInput(rawCard?.name) || `아이${index + 1}`,
+        photo: rawCard?.photo || `https://picsum.photos/seed/${tab}_fallback${index}/${DEFAULT_PHOTO_SIZE}/${DEFAULT_PHOTO_SIZE}`,
+        level: getNormalizedLevel(rawCard?.level ?? rawCard?.drinkLevel)
+      };
+    }
+
+    function normalizeHistoryRecord(rawRecord) {
+      const safeArray = (value) => Array.isArray(value)
+        ? value.map((name) => sanitizeNameInput(name) || "이름없음")
+        : [];
+
+      const fullNames = safeArray(rawRecord?.fullNames);
+      const almostNames = safeArray(rawRecord?.almostNames);
+      const effortNames = safeArray(rawRecord?.effortNames);
+      const noneNames = safeArray(rawRecord?.noneNames);
+
+      return {
+        date: String(rawRecord?.date || ""),
+        fullNames,
+        almostNames,
+        effortNames,
+        noneNames,
+        fullCount: Number(rawRecord?.fullCount ?? fullNames.length) || 0,
+        almostCount: Number(rawRecord?.almostCount ?? almostNames.length) || 0,
+        effortCount: Number(rawRecord?.effortCount ?? effortNames.length) || 0,
+        noneCount: Number(rawRecord?.noneCount ?? noneNames.length) || 0,
+        totalCount: Number(
+          rawRecord?.totalCount ??
+          fullNames.length + almostNames.length + effortNames.length + noneNames.length
+        ) || 0
+      };
+    }
+
+    function loadCardDataFromLocalStorage() {
+      const savedData = localStorage.getItem(getCurrentStorage().cardKey);
+      if (!savedData) return null;
+
+      try {
+        const parsed = JSON.parse(savedData);
+        if (!Array.isArray(parsed)) return null;
+        return parsed.map((item, index) => normalizeCardData(appState.currentTab, item, index));
+      } catch (error) {
+        console.error("카드 데이터 읽기 오류", error);
+        return null;
+      }
+    }
+
+    function saveCardDataToLocalStorage() {
+      const cards = [...DOM.cardList.querySelectorAll(".child-card")];
+      const data = cards.map((card) => ({
+        id: card.dataset.cardId || getNextCardId(),
+        name: getCardName(card),
+        photo: card.querySelector(".child-photo").src,
+        level: getNormalizedLevel(card.dataset.level)
+      }));
+
+      try {
+        localStorage.setItem(getCurrentStorage().cardKey, JSON.stringify(data));
+        localStorage.setItem(getCurrentStorage().editModeKey, JSON.stringify(getCurrentEditMode()));
+      } catch (error) {
+        alert("사진이 너무 커서 저장되지 않았어요. 더 작은 사진으로 바꿔주세요.");
+        console.error(error);
+      }
+    }
+
+    function loadHistoryData() {
+      const saved = localStorage.getItem(getCurrentStorage().historyKey);
+      if (!saved) return [];
+
+      try {
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.map(normalizeHistoryRecord).filter((record) => record.date);
+      } catch (error) {
+        console.error("기록 데이터 읽기 오류", error);
+        return [];
+      }
+    }
+
+    function saveHistoryData(historyArray) {
+      const normalized = historyArray
+        .map(normalizeHistoryRecord)
+        .filter((record) => record.date);
+
+      localStorage.setItem(getCurrentStorage().historyKey, JSON.stringify(normalized));
+    }
+
+    function getCardName(card) {
+      const input = card.querySelector(".name-input");
+      return sanitizeNameInput(input?.value) || "이름없음";
+    }
+
+    function resizeImageForStorage(file, maxWidth = 220, maxHeight = 220, quality = 0.75) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+          const img = new Image();
+
+          img.onload = () => {
+            let { width, height } = img;
+            const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
+            const newWidth = Math.round(width * ratio);
+            const newHeight = Math.round(height * ratio);
+
+            const canvas = document.createElement("canvas");
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+            resolve(canvas.toDataURL("image/jpeg", quality));
+          };
+
+          img.onerror = () => reject(new Error("이미지 로드 실패"));
+          reader.onerror = () => reject(new Error("파일 읽기 실패"));
+          img.src = event.target.result;
+        };
+
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function getMilkSVG(level) {
+      const percentMap = [100, 66, 33, 0];
+      const fillPercent = percentMap[getNormalizedLevel(level)];
+      const totalHeight = 56;
+      const milkHeight = totalHeight * (fillPercent / 100);
+      const milkY = 82 - milkHeight;
+
+      return `
+        <svg class="item-svg" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M26 20 H70 L74 92 Q74 100 66 100 H30 Q22 100 22 92 Z"
+                fill="#ffffff" stroke="#4aa3ff" stroke-width="4" />
+          <path d="M70 34 H80 Q89 34 89 45 V58 Q89 69 80 69 H74"
+                fill="none" stroke="#4aa3ff" stroke-width="4" stroke-linecap="round"/>
+          ${milkHeight > 0 ? `
+            <path d="M28 ${milkY} H68 L70 88 Q70 94 64 94 H32 Q26 94 26 88 Z" fill="#fff7cc" />
+          ` : ""}
+          <ellipse cx="48" cy="20" rx="22" ry="5" fill="#dff1ff" opacity="0.55"/>
+        </svg>
+      `;
+    }
+
+    function getBreadSVG(level, cardId) {
+      const percentMap = [100, 66, 33, 0];
+      const remainPercent = percentMap[getNormalizedLevel(level)];
+      const breadHeight = 70;
+      const visibleHeight = breadHeight * (remainPercent / 100);
+      const crumbY = 25 + (breadHeight - visibleHeight);
+      const clipId = `breadClip_${cardId}`;
+
+      return `
+        <svg class="item-svg" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <clipPath id="${clipId}">
+              <path d="M25 40
+                       C25 22, 40 14, 50 14
+                       C60 14, 75 22, 75 40
+                       L75 95
+                       Q75 101, 69 101
+                       L31 101
+                       Q25 101, 25 95 Z"/>
+            </clipPath>
+          </defs>
+
+          <path d="M25 40
+                   C25 22, 40 14, 50 14
+                   C60 14, 75 22, 75 40
+                   L75 95
+                   Q75 101, 69 101
+                   L31 101
+                   Q25 101, 25 95 Z"
+                fill="#d68a4d" stroke="#b36b32" stroke-width="4"/>
+
+          ${visibleHeight > 0 ? `
+            <rect x="29" y="${crumbY}" width="42" height="${visibleHeight}" fill="#ffe7a6" clip-path="url(#${clipId})"></rect>
+          ` : ""}
+
+          <circle cx="40" cy="38" r="3" fill="#c7742d"/>
+          <circle cx="50" cy="30" r="3" fill="#c7742d"/>
+          <circle cx="60" cy="38" r="3" fill="#c7742d"/>
+        </svg>
+      `;
+    }
+
+    function getItemSVG(level, cardId) {
+      return appState.currentTab === "milk"
+        ? getMilkSVG(level)
+        : getBreadSVG(level, cardId);
+    }
+
+    function updateStatusBadge(card, level) {
+      const badge = card.querySelector(".status-badge");
+      const normalizedLevel = getNormalizedLevel(level);
+      const config = STATUS_CONFIG[normalizedLevel];
+      const idleText = getCurrentTabConfig().idleText;
+
+      badge.className = "status-badge";
+      badge.classList.add(config.className);
+      badge.textContent = normalizedLevel === 0 ? idleText : config.text;
+    }
+
+    function updateCardByLevel(card) {
+      const level = getNormalizedLevel(card.dataset.level);
+      const itemBtn = card.querySelector(".item-btn");
+      const cardId = card.dataset.cardId;
+      itemBtn.innerHTML = getItemSVG(level, cardId);
+
+      card.classList.remove("done", "partial-one", "partial-two");
+      if (level === 1) card.classList.add("partial-one");
+      if (level === 2) card.classList.add("partial-two");
+      if (level === 3) card.classList.add("done");
+
+      updateStatusBadge(card, level);
+    }
+
+    function buildCard(cardData, index) {
+      const normalized = normalizeCardData(appState.currentTab, cardData, index);
+
+      const card = createElement("div", {
+        className: "child-card",
+        dataset: {
+          cardId: normalized.id,
+          level: String(getNormalizedLevel(normalized.level))
+        }
+      });
+
+      const deleteButton = createElement("button", {
+        className: "delete-card-btn",
+        type: "button",
+        text: "−"
+      });
+
+      const statusArea = createElement("div", { className: "status-area" });
+      const badge = createElement("div", { className: "status-badge idle" });
+      statusArea.appendChild(badge);
+
+      const leftInfo = createElement("div", { className: "left-info" });
+
+      const photo = createElement("img", {
+        className: "child-photo",
+        src: normalized.photo,
+        alt: "아이 사진"
+      });
+
+      const nameInput = createElement("input", {
+        className: "name-input",
+        type: "text",
+        value: sanitizeNameInput(normalized.name),
+        maxlength: 10,
+        disabled: true
+      });
+
+      const uploadWrap = createElement("div", { className: "upload-wrap" });
+      const uploadLabel = createElement("label", {
+        className: "upload-label",
+        text: "사진 바꾸기"
+      });
+
+      const photoInput = createElement("input", {
+        className: "photo-input",
+        type: "file",
+        accept: "image/*"
+      });
+
+      const uploadGuide = createElement("div", {
+        className: "upload-guide",
+        text: "수정 모드에서만 사진을 바꿀 수 있어요"
+      });
+
+      uploadLabel.appendChild(photoInput);
+      uploadWrap.appendChild(uploadLabel);
+      uploadWrap.appendChild(uploadGuide);
+
+      leftInfo.appendChild(photo);
+      leftInfo.appendChild(nameInput);
+      leftInfo.appendChild(uploadWrap);
+
+      const itemControl = createElement("div", { className: "item-control" });
+      const itemBtn = createElement("button", {
+        className: "item-btn",
+        type: "button",
+        title: appState.currentTab === "milk" ? "우유컵 클릭" : "빵 클릭"
+      });
+
+      const itemHelp = createElement("div", {
+        className: "item-help",
+        html: "클릭하면 순서대로<br>가득참 → 1/3 → 2/3 → 완료 → 처음"
+      });
+
+      itemControl.appendChild(itemBtn);
+      itemControl.appendChild(itemHelp);
+
+      card.appendChild(deleteButton);
+      card.appendChild(statusArea);
+      card.appendChild(leftInfo);
+      card.appendChild(itemControl);
+
+      attachCardEvents(card);
+      updateCardByLevel(card);
+
+      return card;
+    }
+
+    function buildAddCardTile() {
+      const tile = createElement("button", {
+        className: `add-card-tile ${getCurrentEditMode() ? "show" : ""}`,
+        type: "button",
+        title: "새 카드 추가"
+      });
+
+      tile.innerHTML = `
+        <div class="add-card-inner">
+          <div class="add-card-plus">+</div>
+          <div class="add-card-text">${getCurrentTabConfig().addTileText}</div>
+          <div class="add-card-guide">수정 모드에서만<br>새 카드를 추가할 수 있어요</div>
+        </div>
+      `;
+
+      tile.addEventListener("click", addNewCard);
+      return tile;
+    }
+
+    function applyEditModeToAllCards() {
+      const cards = [...DOM.cardList.querySelectorAll(".child-card")];
+
+      cards.forEach((card) => {
+        const nameInput = card.querySelector(".name-input");
+        const deleteBtn = card.querySelector(".delete-card-btn");
+
+        if (getCurrentEditMode()) {
+          card.classList.add("editing");
+          nameInput.disabled = false;
+          deleteBtn.disabled = false;
+        } else {
+          card.classList.remove("editing");
+          nameInput.disabled = true;
+          deleteBtn.disabled = true;
+        }
+      });
+
+      DOM.editModeBtn.textContent = getCurrentEditMode()
+        ? "카드 수정 모드: ON"
+        : "카드 수정 모드: OFF";
+
+      DOM.editModeBtn.classList.toggle("active", getCurrentEditMode());
+
+      const addTile = DOM.cardList.querySelector(".add-card-tile");
+      if (addTile) {
+        addTile.classList.toggle("show", getCurrentEditMode());
+      }
+
+      localStorage.setItem(getCurrentStorage().editModeKey, JSON.stringify(getCurrentEditMode()));
+    }
+
+    function renderCards(cardDataArray) {
+      DOM.cardList.innerHTML = "";
+
+      cardDataArray.forEach((cardData, index) => {
+        DOM.cardList.appendChild(buildCard(cardData, index));
+      });
+
+      DOM.cardList.appendChild(buildAddCardTile());
+      applyEditModeToAllCards();
+    }
+
+    function getSuggestedChildName() {
+      const existingNumbers = [...DOM.cardList.querySelectorAll(".child-card .name-input")]
+        .map((input) => sanitizeNameInput(input.value))
+        .map((name) => {
+          const match = /^아이(\d+)$/.exec(name);
+          return match ? Number(match[1]) : null;
+        })
+        .filter((value) => Number.isInteger(value));
+
+      let candidate = 1;
+      while (existingNumbers.includes(candidate)) candidate += 1;
+      return `아이${candidate}`;
+    }
+
+    function addNewCard() {
+      if (!getCurrentEditMode()) {
+        alert("카드 수정 모드를 켠 뒤에 카드를 추가할 수 있어요.");
+        return;
+      }
+
+      const newCardData = {
+        id: getNextCardId(),
+        name: getSuggestedChildName(),
+        photo: `https://picsum.photos/seed/${appState.currentTab}_newkid${Date.now()}/${DEFAULT_PHOTO_SIZE}/${DEFAULT_PHOTO_SIZE}`,
+        level: 0
+      };
+
+      const addTile = DOM.cardList.querySelector(".add-card-tile");
+      const newCard = buildCard(newCardData, DOM.cardList.querySelectorAll(".child-card").length);
+
+      if (addTile) {
+        DOM.cardList.insertBefore(newCard, addTile);
+      } else {
+        DOM.cardList.appendChild(newCard);
+      }
+
+      applyEditModeToAllCards();
+      saveCardDataToLocalStorage();
+      DOM.resultText.textContent = "새 아이 카드가 추가되었어요.";
+    }
+
+    function attachCardEvents(card) {
+      const itemBtn = card.querySelector(".item-btn");
+      const nameInput = card.querySelector(".name-input");
+      const photoInput = card.querySelector(".photo-input");
+      const childPhoto = card.querySelector(".child-photo");
+      const deleteCardBtn = card.querySelector(".delete-card-btn");
+      const uploadLabel = card.querySelector(".upload-label");
+
+      itemBtn.addEventListener("click", () => {
+        let level = getNormalizedLevel(card.dataset.level);
+        level = (level + 1) % 4;
+        card.dataset.level = String(level);
+        updateCardByLevel(card);
+        saveCardDataToLocalStorage();
+      });
+
+      nameInput.addEventListener("input", () => {
+        if (!getCurrentEditMode()) return;
+
+        const sanitized = sanitizeNameInput(nameInput.value);
+        if (nameInput.value !== sanitized) nameInput.value = sanitized;
+        saveCardDataToLocalStorage();
+      });
+
+      nameInput.addEventListener("blur", () => {
+        const sanitized = sanitizeNameInput(nameInput.value);
+        nameInput.value = sanitized || "이름없음";
+        saveCardDataToLocalStorage();
+      });
+
+      photoInput.addEventListener("change", async (event) => {
+        if (!getCurrentEditMode()) return;
+
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+          alert("이미지 파일을 선택해주세요!");
+          return;
+        }
+
+        try {
+          const resizedImage = await resizeImageForStorage(file, 220, 220, 0.75);
+          childPhoto.src = resizedImage;
+          saveCardDataToLocalStorage();
+          DOM.resultText.textContent = "사진을 저장했어요.";
+        } catch (error) {
+          alert("사진 처리 중 오류가 생겼어요.");
+          console.error(error);
+        }
+
+        photoInput.value = "";
+      });
+
+      deleteCardBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (!getCurrentEditMode()) return;
+
+        const name = getCardName(card);
+        const confirmed = window.confirm(`"${name}" 카드를 삭제할까요?`);
+        if (!confirmed) return;
+
+        card.remove();
+        saveCardDataToLocalStorage();
+        DOM.resultText.textContent = "카드가 삭제되었어요.";
+      });
+
+      uploadLabel.addEventListener("click", (event) => {
+        if (!getCurrentEditMode()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      });
+    }
+
+    function collectCurrentStatus() {
+      const childCards = [...DOM.cardList.querySelectorAll(".child-card")];
+
+      const fullNames = [];
+      const almostNames = [];
+      const effortNames = [];
+      const noneNames = [];
+
+      childCards.forEach((card) => {
+        const name = getCardName(card);
+        const level = getNormalizedLevel(card.dataset.level);
+
+        if (level === 3) fullNames.push(name);
+        else if (level === 2) almostNames.push(name);
+        else if (level === 1) effortNames.push(name);
+        else noneNames.push(name);
+      });
+
+      return {
+        totalCount: childCards.length,
+        fullNames,
+        almostNames,
+        effortNames,
+        noneNames,
+        fullCount: fullNames.length,
+        almostCount: almostNames.length,
+        effortCount: effortNames.length,
+        noneCount: noneNames.length
+      };
+    }
+
+    function appendResultLine(container, label, value) {
+      const line = document.createElement("div");
+      line.append(document.createTextNode(label + " "));
+      const strong = document.createElement("strong");
+      strong.textContent = value;
+      line.appendChild(strong);
+      container.appendChild(line);
+    }
+
+    function appendResultText(container, text) {
+      const line = document.createElement("div");
+      line.textContent = text;
+      container.appendChild(line);
+    }
+
+    function appendResultSpacer(container) {
+      container.appendChild(document.createElement("br"));
+    }
+
+    function showFinalCheckResult() {
+      const status = collectCurrentStatus();
+      const label = getCurrentTabConfig().resultLabel;
+
+      DOM.resultText.innerHTML = "";
+
+      appendResultLine(DOM.resultText, "✅ 다 먹은 유아:", `${status.fullCount}명`);
+      appendResultText(DOM.resultText, `👉 이름: ${status.fullNames.length ? status.fullNames.join(", ") : "없음"}`);
+      appendResultSpacer(DOM.resultText);
+
+      appendResultLine(DOM.resultText, "🌟 거의 다 먹었어요:", `${status.almostCount}명`);
+      appendResultText(DOM.resultText, `👉 이름: ${status.almostNames.length ? status.almostNames.join(", ") : "없음"}`);
+      appendResultSpacer(DOM.resultText);
+
+      appendResultLine(DOM.resultText, "👏 노력했어요:", `${status.effortCount}명`);
+      appendResultText(DOM.resultText, `👉 이름: ${status.effortNames.length ? status.effortNames.join(", ") : "없음"}`);
+      appendResultSpacer(DOM.resultText);
+
+      appendResultLine(DOM.resultText, `🥄 아직 ${label}을 먹지 않은 유아:`, `${status.noneCount}명`);
+      appendResultText(DOM.resultText, `👉 이름: ${status.noneNames.length ? status.noneNames.join(", ") : "없음"}`);
+      appendResultSpacer(DOM.resultText);
+
+      appendResultLine(DOM.resultText, "📌 총 인원:", `${status.totalCount}명`);
+    }
+
+    function saveDailyRecord() {
+      const selectedDate = DOM.recordDate.value;
+      if (!selectedDate) {
+        alert("날짜를 먼저 선택해주세요!");
+        return;
+      }
+
+      const status = collectCurrentStatus();
+      const history = loadHistoryData();
+
+      const newRecord = {
+        date: selectedDate,
+        fullNames: status.fullNames,
+        almostNames: status.almostNames,
+        effortNames: status.effortNames,
+        noneNames: status.noneNames,
+        fullCount: status.fullCount,
+        almostCount: status.almostCount,
+        effortCount: status.effortCount,
+        noneCount: status.noneCount,
+        totalCount: status.totalCount
+      };
+
+      const existingIndex = history.findIndex((item) => item.date === selectedDate);
+
+      if (existingIndex >= 0) {
+        history[existingIndex] = newRecord;
+      } else {
+        history.push(newRecord);
+      }
+
+      saveHistoryData(history);
+      renderHistoryTable();
+      DOM.resultText.textContent = `${selectedDate} 날짜 기록을 저장했어요.`;
+    }
+
+    function renderHistoryTable() {
+      const history = loadHistoryData();
+      DOM.historyTableWrap.innerHTML = "";
+
+      if (history.length === 0) {
+        DOM.historyTableWrap.appendChild(createElement("div", {
+          className: "empty-history",
+          text: "아직 저장된 날짜별 기록이 없어요."
+        }));
+        return;
+      }
+
+      const sortedHistory = [...history].sort((a, b) => b.date.localeCompare(a.date));
+
+      const table = createElement("table", { className: "history-table" });
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+      const headers = [
+        "날짜",
+        "다 먹은 유아",
+        "거의 다 먹었어요",
+        "노력했어요",
+        "먹지 않은 유아",
+        "다 먹음 수",
+        "거의 다 수",
+        "노력 수",
+        "안 먹음 수",
+        "총계"
+      ];
+
+      headers.forEach((headerText) => {
+        headRow.appendChild(createElement("th", { text: headerText }));
+      });
+
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+
+      sortedHistory.forEach((record) => {
+        const row = document.createElement("tr");
+
+        row.appendChild(createElement("td", { text: record.date }));
+        row.appendChild(createElement("td", { text: record.fullNames.length ? record.fullNames.join(", ") : "없음" }));
+        row.appendChild(createElement("td", { text: record.almostNames.length ? record.almostNames.join(", ") : "없음" }));
+        row.appendChild(createElement("td", { text: record.effortNames.length ? record.effortNames.join(", ") : "없음" }));
+        row.appendChild(createElement("td", { text: record.noneNames.length ? record.noneNames.join(", ") : "없음" }));
+        row.appendChild(createElement("td", { text: String(record.fullCount) }));
+        row.appendChild(createElement("td", { text: String(record.almostCount) }));
+        row.appendChild(createElement("td", { text: String(record.effortCount) }));
+        row.appendChild(createElement("td", { text: String(record.noneCount) }));
+        row.appendChild(createElement("td", { text: String(record.totalCount) }));
+
+        tbody.appendChild(row);
+      });
+
+      table.appendChild(tbody);
+      DOM.historyTableWrap.appendChild(table);
+    }
+
+    function exportHistoryToExcel() {
+      const history = loadHistoryData();
+
+      if (history.length === 0) {
+        alert("엑셀로 저장할 기록이 없어요!");
+        return;
+      }
+
+      const excelRows = [...history]
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map((record) => ({
+          날짜: record.date,
+          다먹은유아: record.fullNames.length ? record.fullNames.join(", ") : "없음",
+          거의다먹었어요: record.almostNames.length ? record.almostNames.join(", ") : "없음",
+          노력했어요: record.effortNames.length ? record.effortNames.join(", ") : "없음",
+          먹지않은유아: record.noneNames.length ? record.noneNames.join(", ") : "없음",
+          다먹음수: record.fullCount,
+          거의다수: record.almostCount,
+          노력수: record.effortCount,
+          안먹음수: record.noneCount,
+          총계: record.totalCount
+        }));
+
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(excelRows);
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        appState.currentTab === "milk" ? "우유기록" : "간식기록"
+      );
+
+      XLSX.writeFile(
+        workbook,
+        `${getCurrentTabConfig().exportPrefix}_${getTodayString()}.xlsx`
+      );
+    }
+
+    function resetLevels() {
+      const confirmed = window.confirm("오늘 체크 상태를 모두 초기화할까요?");
+      if (!confirmed) return;
+
+      [...DOM.cardList.querySelectorAll(".child-card")].forEach((card) => {
+        card.dataset.level = "0";
+        updateCardByLevel(card);
+      });
+
+      saveCardDataToLocalStorage();
+      DOM.resultText.textContent = "오늘 체크 상태를 모두 초기화했어요.";
+    }
+
+    function resetSavedCardsToDefault() {
+      const confirmed = window.confirm("저장된 카드 구성을 지우고 기본 카드 3개로 되돌릴까요?");
+      if (!confirmed) return;
+
+      localStorage.removeItem(getCurrentStorage().cardKey);
+      localStorage.removeItem(getCurrentStorage().sequenceKey);
+      loadCardSequence(appState.currentTab);
+      renderCards(getDefaultCards(appState.currentTab));
+      saveCardDataToLocalStorage();
+      DOM.resultText.textContent = "카드 저장을 지우고 처음 카드로 바꿨어요.";
+    }
+
+    function clearAllHistory() {
+      const confirmed = window.confirm("날짜별 기록을 모두 지울까요?");
+      if (!confirmed) return;
+
+      localStorage.removeItem(getCurrentStorage().historyKey);
+      renderHistoryTable();
+      DOM.resultText.textContent = "날짜별 기록을 모두 지웠어요.";
+    }
+
+    function updateTabUI() {
+      const config = getCurrentTabConfig();
+
+      DOM.milkTabBtn.classList.toggle("active", appState.currentTab === "milk");
+      DOM.snackTabBtn.classList.toggle("active", appState.currentTab === "snack");
+
+      DOM.mainTitle.textContent = config.title;
+      DOM.historyTitle.textContent = config.historyTitle;
+      DOM.resetBtn.textContent = appState.currentTab === "milk"
+        ? "오늘 우유 체크 초기화"
+        : "오늘 간식 체크 초기화";
+    }
+
+    function renderCurrentTab() {
+      updateTabUI();
+
+      const savedCards = loadCardDataFromLocalStorage();
+
+      if (savedCards && savedCards.length > 0) {
+        renderCards(savedCards);
+        DOM.resultText.textContent = "저장된 카드 데이터를 불러왔어요.";
+      } else {
+        renderCards(getDefaultCards(appState.currentTab));
+        saveCardDataToLocalStorage();
+        DOM.resultText.textContent = "기본 카드 데이터를 불러왔어요.";
+      }
+
+      renderHistoryTable();
+    }
+
+    function switchTab(tab) {
+      appState.currentTab = tab;
+      renderCurrentTab();
+    }
+
+    function bindEvents() {
+      DOM.editModeBtn.addEventListener("click", () => {
+        setCurrentEditMode(!getCurrentEditMode());
+        applyEditModeToAllCards();
+        saveCardDataToLocalStorage();
+        DOM.resultText.textContent = getCurrentEditMode()
+          ? "카드 수정 모드가 켜졌어요."
+          : "카드 수정 모드가 꺼졌어요.";
+      });
+
+      DOM.saveBtn.addEventListener("click", () => {
+        saveCardDataToLocalStorage();
+        DOM.resultText.textContent = "현재 카드 정보를 저장했어요.";
+      });
+
+      DOM.clearSaveBtn.addEventListener("click", resetSavedCardsToDefault);
+      DOM.finalCheckBtn.addEventListener("click", showFinalCheckResult);
+      DOM.resetBtn.addEventListener("click", resetLevels);
+
+      DOM.saveRecordBtn.addEventListener("click", saveDailyRecord);
+      DOM.exportExcelBtn.addEventListener("click", exportHistoryToExcel);
+      DOM.clearRecordBtn.addEventListener("click", clearAllHistory);
+
+      DOM.milkTabBtn.addEventListener("click", () => switchTab("milk"));
+      DOM.snackTabBtn.addEventListener("click", () => switchTab("snack"));
+    }
+
+    function initializeApp() {
+      DOM.recordDate.value = getTodayString();
+
+      ["milk", "snack"].forEach((tab) => {
+        appState.editModeByTab[tab] = loadEditModeForTab(tab);
+        loadCardSequence(tab);
+      });
+
+      bindEvents();
+      renderCurrentTab();
+    }
+
+    initializeApp();
+  </script>
+</body>
+</html>
