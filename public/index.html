@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>급식·우유·간식 체크 프로그램</title>
+
+  <!-- 외부 라이브러리 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- 1. CSS 파일 연결 -->
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="theme-meal">
+  <main class="app">
+    <section class="main-panel">
+      <div class="content-layer">
+        <h1 id="mainTitle" class="title">🍱 급식 체크</h1>
+        <p id="subtitle" class="subtitle">캐릭터를 눌러 먹은 정도를 체크해요.</p>
+
+        <nav class="tabs" aria-label="체크 탭">
+          <button class="tab-btn active" id="mealTab" type="button">🍱 급식</button>
+          <button class="tab-btn" id="milkTab" type="button">🥛 우유</button>
+          <button class="tab-btn" id="snackTab" type="button">🍪 간식</button>
+        </nav>
+
+        <div class="tools">
+          <button class="tool-btn edit-btn" id="editBtn" type="button">✏️ 카드 수정</button>
+          <button class="tool-btn save-btn" id="saveBtn" type="button">💾 카드 저장</button>
+          <button class="tool-btn default-btn" id="defaultBtn" type="button">🌈 기본 카드로</button>
+        </div>
+
+        <section class="card-grid" id="cardGrid"></section>
+      </div>
+    </section>
+
+    <section class="bottom">
+      <div class="box">
+        <div class="actions">
+          <button class="action-btn check-btn" id="checkBtn" type="button">✅ 최종 확인</button>
+          <button class="action-btn reset-btn" id="resetBtn" type="button">🔄 오늘 급식 체크 초기화</button>
+        </div>
+        <div class="result" id="result">준비되었습니다.</div>
+      </div>
+
+      <div class="box">
+        <h2 class="history-title" id="historyTitle">📚 급식 날짜별 기록</h2>
+        <div class="actions">
+          <input class="date-input" id="recordDate" type="date" />
+          <button class="action-btn record-btn" id="saveRecordBtn" type="button">📝 저장</button>
+          <button class="action-btn excel-btn" id="excelBtn" type="button">📊 엑셀</button>
+          <button class="action-btn delete-btn" id="clearHistoryBtn" type="button">🗑 삭제</button>
+        </div>
+        <div class="table-wrap" id="historyWrap"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 2. 자바스크립트 파일 연결 -->
+  <script src="script.js"></script>
+</body>
+</html>

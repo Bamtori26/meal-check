@@ -1,0 +1,47 @@
+* { box-sizing: border-box; }
+
+:root {
+  --theme-main: #ff955c;
+  --theme-soft: #ffe5ce;
+  --theme-light: #fff7ee;
+  --theme-border: #ffc06e;
+  --pink: #ff5aa5;
+  --purple: #7d78ff;
+  --mint: #00b7a8;
+  --green: #43c463;
+  --yellow: #ffbd2e;
+  --blue: #38a8ff;
+  --red: #ff6b6b;
+  --text: #45405a;
+  --shadow: 0 16px 35px rgba(62, 45, 87, 0.14);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Arial", "맑은 고딕", sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at top left, rgba(255,255,255,0.9), transparent 32%),
+              linear-gradient(135deg, #fff8bf, #ffd5ec 46%, #d8f4ff);
+}
+
+body.theme-meal { --theme-main: #ff955c; --theme-soft: #ffe3c7; --theme-border: #ffc06e; }
+body.theme-milk { --theme-main: #56a9ff; --theme-soft: #dff1ff; --theme-border: #95d3ff; }
+body.theme-snack { --theme-main: #ff69b4; --theme-soft: #ffe0ef; --theme-border: #ffaad5; }
+
+.app { width: min(1600px, 100%); margin: 0 auto; padding: 18px; }
+.main-panel { position: relative; padding: 22px; border: 5px dashed rgba(255, 96, 160, 0.65); border-radius: 34px; background: rgba(255, 255, 255, 0.72); box-shadow: var(--shadow); backdrop-filter: blur(10px); }
+.title { text-align: center; font-size: clamp(28px, 4vw, 44px); color: var(--theme-main); text-shadow: 3px 3px 0 #fff; }
+.tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 16px; }
+.tab-btn { border: 0; border-radius: 999px; padding: 12px 20px; font-weight: 900; color: #fff; background: #b9b5d9; cursor: pointer; }
+.tab-btn.active { background: var(--theme-main); }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 14px; }
+.child-card { position: relative; padding: 13px; background: #fff; border: 4px solid var(--theme-border); border-radius: 26px; }
+.status-badge { padding: 8px; border-radius: 15px; color: #fff; text-align: center; font-weight: 900; }
+.status-badge.level-3 { background: var(--green); }
+.photo { width: 78px; height: 78px; display: block; margin: 0 auto; border-radius: 50%; }
+.name { width: 100%; border: 3px solid #d8ccff; border-radius: 14px; text-align: center; }
+.character-zone { text-align: center; margin-top: 10px; }
+.character-btn { background: none; border: none; cursor: pointer; }
+.box { margin-bottom: 18px; padding: 18px; border: 5px dashed var(--theme-border); border-radius: 30px; background: #fff; }
+/* ... (나머지 CSS 생략 - 기존 스타일 복사해서 넣으시면 됩니다) ... */
